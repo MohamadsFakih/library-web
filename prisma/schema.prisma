@@ -1,0 +1,55 @@
+// Library Management System - Prisma Schema
+// Local: SQLite. For deployment set DATABASE_URL to Postgres (e.g. Vercel Postgres).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?   // null when using SSO (Google/GitHub)
+  name         String?
+  image        String?
+  role         String    @default("USER")  // USER | ADMIN
+  disabled     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  rentals Rental[]
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  isbn        String?
+  genre       String?
+  description String?
+  coverUrl    String?
+  totalCopies Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rentals Rental[]
+}
+
+model Rental {
+  id         String    @id @default(cuid())
+  borrowedAt DateTime  @default(now())
+  dueAt      DateTime?
+  returnedAt DateTime?  // null = still checked out
+
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([userId])
+}
