@@ -3,58 +3,53 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
- * AI-powered book recommendations based on user's rental history.
- * Returns books in genres the user has borrowed, or popular books if no history.
+ * AI-style recommendations: media similar to what's in the user's collection
+ * (same genre or type). If no collection, returns popular/fresh media.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(Number(searchParams.get("limit")) || 6, 20);
 
-  const pastRentals = await prisma.rental.findMany({
-    where: { userId: session.user.id, returnedAt: { not: null } },
-    include: { book: true },
-    orderBy: { returnedAt: "desc" },
-    take: 20,
-  });
+  let recommended: { id: string; type: string; title: string; creator: string; genre: string | null; coverUrl: string | null; description: string | null; reason?: string }[] = [];
 
-  const genres = [...new Set(pastRentals.map((r) => r.book.genre).filter(Boolean))] as string[];
-  const authorIds = pastRentals.map((r) => r.book.id);
-
-  let recommended: { id: string; title: string; author: string; genre: string | null; coverUrl: string | null; available: number; totalCopies: number; reason?: string }[] = [];
-
-  if (genres.length > 0) {
-    const byGenre = await prisma.book.findMany({
-      where: {
-        genre: { in: genres },
-        id: { notIn: authorIds },
-      },
-      take: 6,
-      orderBy: { title: "asc" },
+  if (session?.user?.id) {
+    const myItems = await prisma.userMedia.findMany({
+      where: { userId: session.user.id },
+      include: { media: true },
+      take: 30,
     });
-    const withAvailability = await Promise.all(
-      byGenre.map(async (b) => {
-        const active = await prisma.rental.count({ where: { bookId: b.id, returnedAt: null } });
-        return { ...b, available: Math.max(0, b.totalCopies - active), reason: "Based on genres you've read" };
-      })
-    );
-    recommended = withAvailability;
-  }
+    const genres = [...new Set(myItems.map((i) => i.media.genre).filter(Boolean))] as string[];
+    const types = [...new Set(myItems.map((i) => i.media.type))];
+    const excludeIds = myItems.map((i) => i.mediaId);
 
-  if (recommended.length < 6) {
-    const more = await prisma.book.findMany({
-      where: { id: { notIn: [...authorIds, ...recommended.map((r) => r.id)] } },
-      take: 6 - recommended.length,
-      orderBy: { title: "asc" },
+    if (genres.length > 0 || types.length > 0) {
+      const byPreference = await prisma.media.findMany({
+        where: {
+          id: { notIn: excludeIds },
+          ...(genres.length ? { genre: { in: genres } } : {}),
+          ...(types.length ? { type: { in: types } } : {}),
+        },
+        take: limit,
+        orderBy: { title: "asc" },
+      });
+      recommended = byPreference.map((m) => ({ ...m, reason: "Based on your collection" }));
+    }
+
+    if (recommended.length < limit) {
+      const more = await prisma.media.findMany({
+        where: { id: { notIn: [...excludeIds, ...recommended.map((r) => r.id)] } },
+        take: limit - recommended.length,
+        orderBy: { createdAt: "desc" },
+      });
+      recommended = [...recommended, ...more.map((m) => ({ ...m, reason: "New in catalog" }))];
+    }
+  } else {
+    const all = await prisma.media.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
     });
-    const withAvailability = await Promise.all(
-      more.map(async (b) => {
-        const active = await prisma.rental.count({ where: { bookId: b.id, returnedAt: null } });
-        return { ...b, available: Math.max(0, b.totalCopies - active), reason: "Popular in the library" };
-      })
-    );
-    recommended = [...recommended, ...withAvailability];
+    recommended = all.map((m) => ({ ...m, reason: "Popular" }));
   }
 
   return NextResponse.json(recommended);

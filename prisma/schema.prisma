@@ -1,4 +1,4 @@
-// Library Management System - Prisma Schema
+// Personal Media Collection Tracker
 // Local: SQLite. For deployment set DATABASE_URL to Postgres (e.g. Vercel Postgres).
 
 generator client {
@@ -11,45 +11,57 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String?   // null when using SSO (Google/GitHub)
-  name         String?
-  image        String?
-  role         String    @default("USER")  // USER | ADMIN
-  disabled     Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?   // null when using SSO (Google/GitHub)
+  name          String?
+  image         String?
+  role          String    @default("USER")  // USER | ADMIN
+  disabled      Boolean   @default(false)
+  profilePublic Boolean   @default(true)    // whether others can see this user's collection
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  rentals Rental[]
+  collection   UserMedia[]
+  createdMedia Media[]     @relation("MediaCreator")
 }
 
-model Book {
-  id          String   @id @default(cuid())
+// Media catalog (admin or users add; users add these to their collection)
+model Media {
+  id          String    @id @default(cuid())
+  type        String    // MOVIE | MUSIC | GAME
   title       String
-  author      String
-  isbn        String?
+  creator     String    // director, artist, developer
+  releaseDate DateTime? // optional release date
   genre       String?
   description String?
   coverUrl    String?
-  totalCopies Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Extra metadata: platform (e.g. PS5, Steam), album (for music), etc.
+  metadata    String?   // JSON or plain text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  rentals Rental[]
+  // Who created this entry (null = seeded/system)
+  createdById String?
+  createdBy   User?     @relation("MediaCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  userMedia UserMedia[]
 }
 
-model Rental {
-  id         String    @id @default(cuid())
-  borrowedAt DateTime  @default(now())
-  dueAt      DateTime?
-  returnedAt DateTime?  // null = still checked out
+// User's collection entry: media + status
+model UserMedia {
+  id         String   @id @default(cuid())
+  userId     String
+  mediaId    String
+  status     String   // OWNED | WISHLIST | IN_PROGRESS | COMPLETED
+  notes      String?
+  completedAt DateTime? // when marked completed
+  addedAt    DateTime @default(now())
 
-  bookId String
-  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
-  @@index([bookId])
+  @@unique([userId, mediaId])
   @@index([userId])
+  @@index([mediaId])
 }

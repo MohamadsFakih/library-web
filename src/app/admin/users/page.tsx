@@ -9,7 +9,7 @@ type UserRow = {
   role: string;
   disabled: boolean;
   createdAt: string;
-  _count: { rentals: number };
+  _count: { collection: number };
 };
 
 export default function AdminUsersPage() {
@@ -57,51 +57,57 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
+      <div className="flex items-center justify-center py-16">
+        <div className="w-9 h-9 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--foreground)] mb-1">Users</h1>
-      <p className="text-[var(--muted)] mb-6">View and manage user accounts.</p>
-      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] overflow-hidden shadow-[var(--shadow-card)]">
+      <div className="mb-6">
+        <h1 className="page-title text-2xl sm:text-3xl text-[var(--foreground)] mb-1">Users</h1>
+        <p className="text-[var(--muted)] text-sm">View and manage user accounts.</p>
+      </div>
+      <div className="card rounded-[var(--radius-xl)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--card-border)] bg-[var(--surface)]">
-                <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Role</th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Rentals</th>
-                <th className="text-left px-4 py-3 font-semibold text-[var(--foreground)]">Status</th>
-                <th className="text-right px-4 py-3 font-semibold text-[var(--foreground)]">Actions</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-[var(--foreground)]">Email</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-[var(--foreground)]">Name</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-[var(--foreground)]">Role</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-[var(--foreground)]">Collection</th>
+                <th className="text-left px-5 py-3.5 font-semibold text-[var(--foreground)]">Status</th>
+                <th className="text-right px-5 py-3.5 font-semibold text-[var(--foreground)]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-[var(--card-border)]">
-                  <td className="px-4 py-3 font-medium">{u.email}</td>
-                  <td className="px-4 py-3 text-[var(--muted)]">{u.name ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.role === "ADMIN" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}>
+                <tr key={u.id} className="border-b border-[var(--card-border)] last:border-0 hover:bg-[var(--surface)]/50 transition-colors">
+                  <td className="px-5 py-3.5 font-medium">{u.email}</td>
+                  <td className="px-5 py-3.5 text-[var(--muted)]">{u.name ?? "—"}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-block px-2.5 py-1 rounded-[var(--radius)] text-xs font-medium ${u.role === "ADMIN" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}>
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[var(--muted)]">{u._count.rentals}</td>
-                  <td className="px-4 py-3">
-                    {u.disabled ? <span className="text-red-600 text-xs font-medium">Disabled</span> : <span className="text-green-600 text-xs font-medium">Active</span>}
+                  <td className="px-5 py-3.5 text-[var(--muted)]">{u._count.collection}</td>
+                  <td className="px-5 py-3.5">
+                    {u.disabled ? (
+                      <span className="text-[var(--danger)] text-xs font-medium">Disabled</span>
+                    ) : (
+                      <span className="text-[var(--success)] text-xs font-medium">Active</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-5 py-3.5 text-right">
                     {u.role !== "ADMIN" && (
-                      <>
+                      <span className="inline-flex gap-2">
                         <button
                           type="button"
                           onClick={() => toggleDisabled(u)}
                           disabled={updatingId === u.id}
-                          className="px-3 py-1.5 rounded-lg text-xs text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent-soft)] disabled:opacity-50 mr-2"
+                          className="px-3 py-1.5 rounded-[var(--radius)] text-xs font-medium text-[var(--accent)] border border-[var(--accent)]/40 hover:bg-[var(--accent-soft)] disabled:opacity-50 transition-colors"
                         >
                           {updatingId === u.id ? "…" : u.disabled ? "Enable" : "Disable"}
                         </button>
@@ -109,11 +115,11 @@ export default function AdminUsersPage() {
                           type="button"
                           onClick={() => deleteUser(u)}
                           disabled={updatingId === u.id}
-                          className="px-3 py-1.5 rounded-lg text-xs text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-[var(--radius)] text-xs font-medium text-[var(--danger)] border border-red-200 hover:bg-[var(--danger-soft)] disabled:opacity-50 transition-colors"
                         >
                           Delete
                         </button>
-                      </>
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -121,7 +127,7 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
-        {users.length === 0 && <p className="px-4 py-8 text-center text-[var(--muted)]">No users.</p>}
+        {users.length === 0 && <p className="px-5 py-10 text-center text-[var(--muted)]">No users.</p>}
       </div>
     </div>
   );

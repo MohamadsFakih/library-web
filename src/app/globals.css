@@ -3,21 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --background: #faf8f4;
-  --foreground: #1c1815;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-soft: #dbeafe;
-  --card: #ffffff;
-  --card-border: #e9e3d8;
-  --muted: #7c7266;
-  --surface: #f3efe8;
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --shadow-card: 0 2px 8px rgba(28, 24, 21, 0.06), 0 0 0 1px rgba(28, 24, 21, 0.03);
-  --shadow-hover: 0 8px 28px rgba(37, 99, 235, 0.15), 0 4px 10px rgba(28, 24, 21, 0.06);
-  --radius: 12px;
-  --radius-lg: 16px;
+  /* ── Gaming Dark Palette ────────────────────── */
+  --background:  #0b0b12;
+  --foreground:  #e2e8f0;
+  --muted:       #7785a0;
+  --accent:      #8b5cf6;
+  --accent-hover:#7c3aed;
+  --accent-soft: #1e1035;
+  --accent-glow: rgba(139,92,246,0.35);
+  --card:        #14141f;
+  --card-border: #2d2d45;
+  --surface:     #1a1a2a;
+  --input-bg:    #1f1f30;
+  --danger:      #f43f5e;
+  --danger-soft: #2d0a12;
+  --success:     #34d399;
+  --success-soft:#062a1a;
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.5);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(139,92,246,0.08);
+  --shadow-hover:0 8px 40px rgba(139,92,246,0.25), 0 0 0 1px rgba(139,92,246,0.3);
+  --radius:      10px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -25,49 +32,136 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.6;
 }
 
+/* ── Scrollbar ─────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ── Animations ─────────────────────────────────── */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-up { animation: slideUp 0.3s ease; }
+.animate-slide-up { animation: slideUp 0.35s ease-out; }
 
-.form-input {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
+.animate-fade-in { animation: fadeIn 0.25s ease-out; }
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(139,92,246,0.2); }
+  50%       { box-shadow: 0 0 16px 4px rgba(139,92,246,0.4); }
+}
+.animate-glow { animation: pulse-glow 2s ease-in-out infinite; }
+
+/* ── Form inputs ────────────────────────────────── */
+.form-input {
+  background: var(--input-bg);
+  color: var(--foreground);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-input::placeholder { color: var(--muted); }
 .form-input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
 }
+/* ensure select option contrast */
+.form-input option { background: #1f1f30; color: var(--foreground); }
 
+/* ── Buttons ────────────────────────────────────── */
 .btn {
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
 }
-.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9d6ff8 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 20px rgba(139,92,246,0.4);
+}
 
 .btn-outline {
   background: transparent;
   color: var(--foreground);
-  border: 1px solid var(--card-border);
+  border: 1.5px solid var(--card-border);
 }
-.btn-outline:hover:not(:disabled) { background: var(--surface); }
+.btn-outline:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid rgba(244,63,94,0.35);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* ── Cards ──────────────────────────────────────── */
 .card {
   background: var(--card);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(139,92,246,0.4);
+}
+
+/* ── Page title ─────────────────────────────────── */
+.page-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ── Type badges ────────────────────────────────── */
+.badge-movie  { background: rgba(59,130,246,0.15);  color:#60a5fa; border:1px solid rgba(59,130,246,0.25); }
+.badge-music  { background: rgba(236,72,153,0.15);  color:#f472b6; border:1px solid rgba(236,72,153,0.25); }
+.badge-game   { background: rgba(52,211,153,0.15);  color:#34d399; border:1px solid rgba(52,211,153,0.25); }
+.badge-user   { background: rgba(251,191,36,0.12);  color:#fbbf24; border:1px solid rgba(251,191,36,0.25); }
+
+/* ── Status dots ────────────────────────────────── */
+.status-owned     { background:rgba(52,211,153,0.15);  color:#34d399; }
+.status-wishlist  { background:rgba(139,92,246,0.15);  color:#a78bfa; }
+.status-progress  { background:rgba(251,191,36,0.12);  color:#fbbf24; }
+.status-completed { background:rgba(59,130,246,0.15);  color:#60a5fa; }
+
+/* ── Grid background ─────────────────────────────── */
+.bg-grid {
+  background-color: var(--background);
+  background-image: linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
 }

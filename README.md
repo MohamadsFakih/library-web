@@ -1,132 +1,81 @@
-# Mini Library Management System
+# Media Tracker — Personal Media Collection Tracker
 
-A full-stack library app: browse books, rent and return, admin catalog, and optional AI features. Built with **Next.js 15**, **Prisma**, and **NextAuth v5**.
-
----
+Track movies, music, and games in one place. Add items from the catalog to your collection, set status (owned, wishlist, in progress, completed), and share your collection with others.
 
 ## Features
 
-- **Book management** — Add, edit, delete books (title, author, ISBN, genre, description, cover, copies).
-- **Check-in / Check-out** — Users borrow books (check-out) and return them (check-in). Due dates and rental history.
-- **Search** — Find books by title, author, or description.
-- **Authentication** — Email/password and **SSO** (Google, GitHub). User roles: **USER** and **ADMIN**.
-- **Admin panel** — Dashboard, books CRUD, user management (disable/delete). Admin can add books; users rent them.
-- **AI** — Book recommendations based on rental history; optional OpenAI summarization for book descriptions.
-- **Storage** — Optional Vercel Blob for book cover uploads in production.
-- **Database** — SQLite locally; Postgres for production (e.g. Vercel Postgres). Same setup pattern as the recipe app.
+- **Media catalog**: Admins add movies, music, and games (title, creator, release date, genre, description).
+- **Personal collection**: Users add catalog items to their collection with status: **Owned**, **Wishlist**, **In progress**, **Completed**.
+- **Search & filter**: Browse by title, creator, genre, and type (Movie / Music / Game).
+- **Profiles**: Toggle “Share my collection” to let others see what you track. View other users’ public collections.
+- **AI**: Optional recommendations based on your collection; optional AI summarization for media (requires `OPENAI_API_KEY`).
+- **Auth**: Email/password, Google, and GitHub sign-in. Admin and user roles.
 
----
+## How to run
 
-## Tech stack
+### Prerequisites
 
-| Layer     | Tech                    |
-|----------|--------------------------|
-| Framework| Next.js 15 (App Router)  |
-| Database | Prisma (SQLite / Postgres)|
-| Auth     | NextAuth v5 (Credentials + Google + GitHub) |
-| Styling  | Tailwind CSS             |
+- Node.js 18+
+- (Optional) PostgreSQL for production; SQLite is used locally.
 
----
-
-## Prerequisites
-
-- **Node.js** 18+ or 20+
-- **npm** (or yarn / pnpm)
-
----
-
-## Run locally
-
-### 1. Install
+### 1. Install dependencies
 
 ```bash
-cd library-app
 npm install
 ```
 
-### 2. Environment
+### 2. Environment variables
+
+Copy the example env and edit:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set at least:
+Required in `.env`:
 
-| Variable         | Required | Description |
-|------------------|----------|-------------|
-| `DATABASE_URL`   | Yes      | Local: `file:./dev.db` |
-| `AUTH_SECRET`    | Yes      | `openssl rand -base64 32` |
-| `ADMIN_PASSWORD` | Yes      | Password for the admin user |
+- `DATABASE_URL` — SQLite for local: `file:./dev.db`
+- `AUTH_SECRET` — e.g. `openssl rand -base64 32`
+- `ADMIN_PASSWORD` — Used by the seed to create/update the admin user.
 
-Optional: `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` for SSO; `BLOB_READ_WRITE_TOKEN` for cover uploads; `OPENAI_API_KEY` for AI summarization.
+Optional: `ADMIN_EMAIL` (default `admin@admin.com`), `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `OPENAI_API_KEY`, `BLOB_READ_WRITE_TOKEN` (Vercel Blob for cover uploads).
 
-### 3. Database
-
-```bash
-npx prisma db push
-npm run db:seed
-```
-
-### 4. Start
+### 3. Run the app
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+This will:
 
-- **Register** at `/register` or **login** at `/login` (email/password or Google/GitHub if configured).
-- **User** — Browse at `/home`, rent at `/books/[id]`, see **My rentals** at `/home/rentals`.
-- **Admin** — Go to `/admin` (login with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`). Add/edit/delete books and manage users.
+- Generate the Prisma client
+- Push the schema (create/update SQLite tables)
+- Seed the database (admin user + sample media)
+- Start the Next.js dev server at [http://localhost:3000](http://localhost:3000)
 
----
+Log in with the admin email and `ADMIN_PASSWORD` to access the admin area (Media catalog, Users). Register another account to use the app as a normal user (Browse, My collection, Profile).
 
-## Scripts
+### 4. Production build
 
-| Command           | Description |
-|-------------------|-------------|
-| `npm run dev`     | Seed + start dev server (port 3000) |
-| `npm run build`   | Build for production (runs ensure-postgres, prisma generate, db push, seed, next build) |
-| `npm run start`   | Seed + start production server |
-| `npm run db:seed` | Create/update admin and sample books |
-| `npm run db:push` | Push Prisma schema to DB |
+```bash
+npm run build
+npm start
+```
 
----
+For production, set `DATABASE_URL` to a PostgreSQL connection string (e.g. Vercel Postgres). The build script switches the Prisma provider to PostgreSQL when it detects a `postgresql://` URL.
 
-## Admin panel
+## Deploy (e.g. Vercel)
 
-- **URL:** [http://localhost:3000/admin](http://localhost:3000/admin)
-- **Credentials:** Use the email and password from `.env`:
-  - `ADMIN_EMAIL` (defaults to `admin@admin.com` if not set)
-  - `ADMIN_PASSWORD` (required)
+1. Connect the repo to Vercel and set environment variables: `DATABASE_URL` (Postgres), `AUTH_SECRET`, `ADMIN_PASSWORD`, and optionally `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `OPENAI_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `NEXTAUTH_URL`.
+2. Deploy. The build runs migrations and seed; ensure the seed is idempotent (creates admin if missing, adds sample media only when the table is empty).
 
-Admin can:
+## Project structure
 
-- Add, edit, delete books (and optionally upload cover images if Blob is configured).
-- View all users; disable or delete non-admin accounts.
-
----
-
-## Production / Deploy (e.g. Vercel)
-
-1. Set **environment variables** in your host:
-
-   | Variable         | Required | When   | Description |
-   |------------------|----------|--------|-------------|
-   | `DATABASE_URL`   | Yes      | Build + Runtime | Postgres URL (e.g. Vercel Postgres) |
-   | `AUTH_SECRET`    | Yes      | Runtime | e.g. `openssl rand -base64 32` |
-   | `NEXTAUTH_URL`   | Yes      | Runtime | App URL, e.g. `https://your-app.vercel.app` (no trailing slash) |
-   | `ADMIN_PASSWORD` | Yes      | Build  | Admin password (seed runs at build and creates/updates admin) |
-   | `ADMIN_EMAIL`    | No       | Build  | Defaults to `admin@admin.com` |
-
-   Optional: `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `BLOB_READ_WRITE_TOKEN`, `OPENAI_API_KEY`.
-
-2. **Deploy** — The build runs `ensure-postgres-for-build.js` (switches schema to Postgres when `DATABASE_URL` is Postgres), then `prisma generate`, `prisma db push`, `db:seed`, and `next build`. Ensure `DATABASE_URL` and `ADMIN_PASSWORD` are available at **build** time so the admin user exists in production.
-
-3. **Live URL** — After deploy, share the app URL (e.g. `https://your-app.vercel.app`) for testing. Users can register/login (including SSO if configured), browse and rent books; admins use `/admin` to manage books and users.
-
----
+- `prisma/schema.prisma` — User, Media, UserMedia (collection entries).
+- `src/app/(main)/` — User app: Browse, My collection, Media detail, Profile (me + public).
+- `src/app/admin/` — Admin: Dashboard, Media CRUD, Users.
+- `src/app/api/` — media, collection, me, users/[id]/collection, ai/recommend, ai/summarize, auth.
 
 ## License
 
-Private / MIT (adjust as needed)
+MIT

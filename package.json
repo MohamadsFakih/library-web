@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run db:seed && npx next dev",
+    "dev": "prisma generate && prisma db push && npm run db:seed && npx next dev",
     "build": "node scripts/ensure-postgres-for-build.js && prisma generate && prisma db push && npm run db:seed && npx next build",
     "start": "npm run db:seed && npx next start",
     "lint": "eslint .",

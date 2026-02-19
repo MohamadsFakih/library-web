@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 
 /**
- * Optional AI summary of a book (description) using OpenAI.
+ * Optional AI summary of a media item (description) using OpenAI.
  * Set OPENAI_API_KEY in env to enable.
  */
 export async function POST(request: Request) {
@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const bookId = body?.bookId as string | undefined;
-  if (!bookId) {
-    return NextResponse.json({ error: "bookId required" }, { status: 400 });
+  const mediaId = body?.mediaId as string | undefined;
+  if (!mediaId) {
+    return NextResponse.json({ error: "mediaId required" }, { status: 400 });
   }
 
-  const book = await prisma.book.findUnique({ where: { id: bookId } });
-  if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  const media = await prisma.media.findUnique({ where: { id: mediaId } });
+  if (!media) return NextResponse.json({ error: "Media not found" }, { status: 404 });
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -30,15 +30,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const typeLabel = { MOVIE: "movie", MUSIC: "album/artist", GAME: "game" }[media.type] ?? "title";
   try {
     const openai = new OpenAI({ apiKey });
-    const text = [book.title, book.author, book.description].filter(Boolean).join(". ");
+    const text = [media.title, media.creator, media.description].filter(Boolean).join(". ");
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "user",
-          content: `In 2-3 sentences, summarize this book for a library catalog: "${text}". Be concise and avoid spoilers.`,
+          content: `In 2-3 sentences, summarize this ${typeLabel} for a personal collection app: "${text}". Be concise and avoid spoilers.`,
         },
       ],
       max_tokens: 150,

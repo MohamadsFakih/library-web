@@ -15,7 +15,7 @@ export async function GET() {
       role: true,
       disabled: true,
       createdAt: true,
-      _count: { select: { rentals: true } },
+      _count: { select: { collection: true } },
     },
   });
   return NextResponse.json(users);
