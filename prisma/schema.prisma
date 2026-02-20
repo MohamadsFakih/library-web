@@ -24,6 +24,17 @@ model User {
 
   collection   UserMedia[]
   createdMedia Media[]     @relation("MediaCreator")
+  reviews      Review[]
+  comments     Comment[]
+
+  // Friends: requests sent by this user
+  friendshipsSent     Friendship[] @relation("FriendshipFrom")
+  // Friends: requests received (or accepted - we store one row per pair, from = requester)
+  friendshipsReceived Friendship[] @relation("FriendshipTo")
+  // Notifications for this user
+  notifications       Notification[] @relation("NotificationUser")
+  // Notifications where this user is the actor (e.g. who sent request / accepted)
+  notificationsAsActor Notification[] @relation("NotificationActor")
 }
 
 // Media catalog (admin or users add; users add these to their collection)
@@ -46,6 +57,72 @@ model Media {
   createdBy   User?     @relation("MediaCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   userMedia UserMedia[]
+  reviews   Review[]
+  comments  Comment[]
+}
+
+// Reviews: rating + optional text (multiple per user per media allowed)
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  mediaId   String
+  rating    Int      // 1-5
+  body      String?  // optional review text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId])
+  @@index([userId, mediaId])
+}
+
+// Comments: thread of comments on media (multiple per user allowed)
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  mediaId   String
+  body      String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId])
+}
+
+// Friendship: one row per pair. fromUserId sent the request, toUserId receives.
+// status PENDING | ACCEPTED. When ACCEPTED, both are friends.
+model Friendship {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  status     String   // PENDING | ACCEPTED
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("FriendshipFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("FriendshipTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+  @@index([fromUserId])
+}
+
+// Notification for a user (e.g. friend request, friend accepted)
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    // who receives the notification
+  type      String    // FRIEND_REQUEST | FRIEND_ACCEPTED
+  actorId   String    // who performed the action (sender of request, or accepter)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user  User @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor User @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, readAt])
 }
 
 // User's collection entry: media + status

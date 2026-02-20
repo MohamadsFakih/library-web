@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 type Item = {
   id: string;
@@ -15,6 +16,8 @@ type Data = {
   collection: Item[];
 };
 
+type FriendStatus = "none" | "self" | "friends" | "pending_sent" | "pending_received";
+
 const STATUS_LABELS: Record<string, string> = {
   OWNED: "Owned",
   WISHLIST: "Wishlist",
@@ -24,10 +27,13 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function PublicProfilePage() {
   const params = useParams();
+  const { data: session } = useSession();
   const id = params.id as string;
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [friendStatus, setFriendStatus] = useState<{ status: FriendStatus; requestId?: string } | null>(null);
+  const [friendLoading, setFriendLoading] = useState(false);
 
   useEffect(() => {
     fetch(`/api/users/${id}/collection`)
@@ -39,6 +45,63 @@ export default function PublicProfilePage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!session?.user?.id || id === session.user.id) {
+      setFriendStatus(id === session?.user?.id ? { status: "self" } : null);
+      return;
+    }
+    fetch(`/api/friends/status/${id}`)
+      .then((r) => r.json())
+      .then((s) => setFriendStatus(s))
+      .catch(() => setFriendStatus(null));
+  }, [id, session?.user?.id]);
+
+  async function addFriend() {
+    setFriendLoading(true);
+    try {
+      const res = await fetch("/api/friends/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toUserId: id }),
+      });
+      const json = await res.json();
+      if (res.ok) setFriendStatus({ status: "pending_sent" });
+      else alert(json.error ?? "Failed to send request");
+    } finally {
+      setFriendLoading(false);
+    }
+  }
+
+  async function acceptRequest() {
+    if (!friendStatus?.requestId) return;
+    setFriendLoading(true);
+    try {
+      const res = await fetch("/api/friends/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: friendStatus.requestId }),
+      });
+      if (res.ok) setFriendStatus({ status: "friends" });
+    } finally {
+      setFriendLoading(false);
+    }
+  }
+
+  async function declineRequest() {
+    if (!friendStatus?.requestId) return;
+    setFriendLoading(true);
+    try {
+      await fetch("/api/friends/decline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: friendStatus.requestId }),
+      });
+      setFriendStatus({ status: "none" });
+    } finally {
+      setFriendLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -59,13 +122,64 @@ export default function PublicProfilePage() {
 
   const typeEmoji: Record<string, string> = { MOVIE: "🎬", MUSIC: "🎵", GAME: "🎮" };
 
+  const showAddFriend = session?.user?.id && session.user.id !== id && friendStatus?.status === "none";
+  const showPendingSent = friendStatus?.status === "pending_sent";
+  const showPendingReceived = friendStatus?.status === "pending_received";
+  const showFriends = friendStatus?.status === "friends";
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="page-title text-2xl sm:text-3xl text-[var(--foreground)] mb-1">
-          {data.user.name || data.user.email}&apos;s collection
-        </h1>
-        <p className="text-[var(--muted)] text-sm">{data.collection.length} items</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="page-title text-2xl sm:text-3xl text-[var(--foreground)] mb-1">
+            {data.user.name || data.user.email}&apos;s collection
+          </h1>
+          <p className="text-[var(--muted)] text-sm">{data.collection.length} items</p>
+        </div>
+        {session?.user?.id && session.user.id !== id && friendStatus && (
+          <div className="flex items-center gap-2">
+            {showAddFriend && (
+              <button
+                type="button"
+                onClick={addFriend}
+                disabled={friendLoading}
+                className="btn btn-primary px-4 py-2 rounded-[var(--radius-lg)] text-sm font-semibold"
+              >
+                {friendLoading ? "…" : "+ Add friend"}
+              </button>
+            )}
+            {showPendingSent && (
+              <span className="px-4 py-2 rounded-[var(--radius-lg)] bg-[var(--surface)] text-sm text-[var(--muted)] border border-[var(--card-border)]">
+                Request sent
+              </span>
+            )}
+            {showPendingReceived && (
+              <>
+                <button
+                  type="button"
+                  onClick={acceptRequest}
+                  disabled={friendLoading}
+                  className="btn btn-primary px-3 py-1.5 rounded-[var(--radius)] text-sm font-medium"
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  onClick={declineRequest}
+                  disabled={friendLoading}
+                  className="btn btn-outline px-3 py-1.5 rounded-[var(--radius)] text-sm"
+                >
+                  Decline
+                </button>
+              </>
+            )}
+            {showFriends && (
+              <span className="px-4 py-2 rounded-[var(--radius-lg)] bg-[var(--accent-soft)] text-sm font-medium text-[var(--accent)] border border-[var(--accent-glow)]">
+                Friends
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {data.collection.length === 0 ? (
