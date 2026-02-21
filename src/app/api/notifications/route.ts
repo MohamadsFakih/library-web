@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-/** GET: list notifications for current user (newest first), optional ?unreadOnly=true */
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,10 +15,13 @@ export async function GET(request: Request) {
   const notifications = await prisma.notification.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    take: 50,
-    include: {
-      actor: { select: { id: true, name: true, email: true, image: true } },
+    take: 30,
+    select: {
+      id: true, type: true, readAt: true, createdAt: true,
+      mediaId: true, mediaTitle: true,
+      actor: { select: { id: true, name: true, email: true } },
     },
   });
+
   return NextResponse.json(notifications);
 }

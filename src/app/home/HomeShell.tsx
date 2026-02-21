@@ -12,6 +12,8 @@ type Notif = {
   actorId: string;
   readAt: string | null;
   createdAt: string;
+  mediaId: string | null;
+  mediaTitle: string | null;
   actor: { id: string; name: string | null; email: string; image: string | null };
 };
 
@@ -120,11 +122,11 @@ export default function HomeShell({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Add media CTA */}
+          {/* Suggest media CTA */}
           <Link href="/media/new"
             className="btn btn-primary flex items-center gap-1.5 px-3.5 py-1.5 rounded-[var(--radius-lg)] text-sm font-semibold">
             <PlusIcon />
-            <span className="hidden sm:inline">Add media</span>
+            <span className="hidden sm:inline">Suggest media</span>
           </Link>
 
           {/* Notifications */}
@@ -154,30 +156,47 @@ export default function HomeShell({
                 </div>
                 <ul className="p-2">
                   {notifs.length === 0 ? (
-                    <li className="py-4 text-center text-sm text-[var(--muted)]">No notifications</li>
+                    <li className="py-6 text-center text-sm text-[var(--muted)]">
+                      <div className="text-2xl mb-1">🔔</div>No notifications yet.
+                    </li>
                   ) : (
-                    notifs.map((n) => (
-                      <li
-                        key={n.id}
-                        className={`py-3 px-2 rounded-[var(--radius)] ${!n.readAt ? "bg-[var(--accent-soft)]/50" : ""}`}
-                      >
-                        <Link
-                          href="/home/friends"
-                          onClick={() => { if (!n.readAt) markRead(n.id); setNotifOpen(false); }}
-                          className="block text-sm text-[var(--foreground)]"
-                        >
-                          {n.type === "FRIEND_REQUEST" && (
-                            <><span className="font-medium">{n.actor.name || n.actor.email}</span> sent you a friend request.</>
-                          )}
-                          {n.type === "FRIEND_ACCEPTED" && (
-                            <><span className="font-medium">{n.actor.name || n.actor.email}</span> accepted your friend request.</>
-                          )}
-                          <span className="block text-xs text-[var(--muted)] mt-0.5">
-                            {new Date(n.createdAt).toLocaleString()}
-                          </span>
-                        </Link>
-                      </li>
-                    ))
+                    notifs.map((n) => {
+                      const media = n.mediaTitle ? `"${n.mediaTitle}"` : "your suggestion";
+                      let icon = "🔔", text: string, href = "/profile/me";
+                      if (n.type === "MEDIA_APPROVED") {
+                        icon = "✅"; text = `${media} was approved and is now live in the catalog!`;
+                        href = n.mediaId ? `/media/${n.mediaId}` : "/home";
+                      } else if (n.type === "MEDIA_REJECTED") {
+                        icon = "❌"; text = `${media} was not approved. Check My suggestions for details.`;
+                      } else if (n.type === "FRIEND_REQUEST") {
+                        icon = "👋"; text = `${n.actor.name || n.actor.email} sent you a friend request.`;
+                        href = "/home/friends";
+                      } else if (n.type === "FRIEND_ACCEPTED") {
+                        icon = "🤝"; text = `${n.actor.name || n.actor.email} accepted your friend request.`;
+                        href = "/home/friends";
+                      } else {
+                        text = "You have a new notification.";
+                      }
+                      return (
+                        <li key={n.id}
+                          className={`rounded-[var(--radius)] ${!n.readAt ? "bg-[var(--accent-soft)]/40" : ""}`}>
+                          <Link href={href}
+                            onClick={() => { if (!n.readAt) markRead(n.id); setNotifOpen(false); }}
+                            className="flex items-start gap-2.5 py-3 px-2 text-sm text-[var(--foreground)] hover:bg-[var(--surface)] rounded-[var(--radius)] transition-colors">
+                            <span className="text-base shrink-0 mt-0.5">{icon}</span>
+                            <span className="flex-1 min-w-0">
+                              {text}
+                              <span className="block text-xs text-[var(--muted)] mt-0.5">
+                                {new Date(n.createdAt).toLocaleString()}
+                              </span>
+                            </span>
+                            {!n.readAt && (
+                              <span className="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0 mt-1.5" />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    })
                   )}
                 </ul>
               </div>

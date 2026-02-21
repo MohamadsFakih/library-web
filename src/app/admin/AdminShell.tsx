@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
 import type { Session } from "next-auth";
 
 const LogoIcon = () => (
@@ -25,6 +26,11 @@ const UsersIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
+const InboxIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+  </svg>
+);
 const BackIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -41,7 +47,15 @@ export default function AdminShell({
   children,
 }: { session: Session | null; children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/admin/suggestions")
+      .then((r) => r.json())
+      .then((d) => setPendingCount(Array.isArray(d) ? d.length : 0))
+      .catch(() => {});
+  }, [pathname]); // refresh count when navigating
 
   if (!session?.user?.id) {
     router.replace("/login?callbackUrl=/admin");
@@ -66,9 +80,10 @@ export default function AdminShell({
   }
 
   const nav = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: DashIcon },
-    { href: "/admin/media",     label: "Media",     icon: MediaIcon },
-    { href: "/admin/users",     label: "Users",     icon: UsersIcon },
+    { href: "/admin/dashboard",   label: "Dashboard",   icon: DashIcon,  badge: 0 },
+    { href: "/admin/media",       label: "Media",        icon: MediaIcon, badge: 0 },
+    { href: "/admin/suggestions", label: "Suggestions",  icon: InboxIcon, badge: pendingCount },
+    { href: "/admin/users",       label: "Users",        icon: UsersIcon, badge: 0 },
   ];
 
   return (
@@ -82,14 +97,14 @@ export default function AdminShell({
             </span>
             <div>
               <p className="font-display font-bold text-sm text-[var(--foreground)]">Admin Panel</p>
-              <p className="text-xs text-[var(--muted)] truncate max-w-[140px]">{session.user.email}</p>
+              <p className="text-xs text-[var(--muted)] truncate max-w-[130px]">{session.user.email}</p>
             </div>
           </Link>
         </div>
 
         {/* Nav */}
         <nav className="p-2 flex-1 space-y-0.5">
-          {nav.map(({ href, label, icon: Icon }) => {
+          {nav.map(({ href, label, icon: Icon, badge }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link key={href} href={href}
@@ -100,7 +115,12 @@ export default function AdminShell({
                 }`}
               >
                 <Icon />
-                {label}
+                <span className="flex-1">{label}</span>
+                {badge > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-bold flex items-center justify-center shadow-[0_0_8px_var(--accent-glow)]">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
               </Link>
             );
           })}

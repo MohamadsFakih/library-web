@@ -37,28 +37,32 @@ model User {
   notificationsAsActor Notification[] @relation("NotificationActor")
 }
 
-// Media catalog (admin or users add; users add these to their collection)
+// Media catalog. Admin creates/approves; users suggest (status=PENDING until approved).
 model Media {
-  id          String    @id @default(cuid())
-  type        String    // MOVIE | MUSIC | GAME
-  title       String
-  creator     String    // director, artist, developer
-  releaseDate DateTime? // optional release date
-  genre       String?
-  description String?
-  coverUrl    String?
-  // Extra metadata: platform (e.g. PS5, Steam), album (for music), etc.
-  metadata    String?   // JSON or plain text
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  type           String    // MOVIE | MUSIC | GAME
+  title          String
+  creator        String    // director, artist, developer
+  releaseDate    DateTime? // optional release date
+  genre          String?
+  description    String?
+  coverUrl       String?
+  metadata       String?   // JSON or plain text (platform, label, studio…)
+  // Moderation
+  status         String    @default("APPROVED") // PENDING | APPROVED | REJECTED
+  rejectionNote  String?   // optional admin note shown to suggester
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  // Who created this entry (null = seeded/system)
+  // Who submitted this entry (null = seeded/system)
   createdById String?
   createdBy   User?     @relation("MediaCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   userMedia UserMedia[]
   reviews   Review[]
   comments  Comment[]
+
+  @@index([status])
 }
 
 // Reviews: rating + optional text (multiple per user per media allowed)
@@ -109,14 +113,17 @@ model Friendship {
   @@index([fromUserId])
 }
 
-// Notification for a user (e.g. friend request, friend accepted)
+// Notification for a user
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String    // who receives the notification
-  type      String    // FRIEND_REQUEST | FRIEND_ACCEPTED
-  actorId   String    // who performed the action (sender of request, or accepter)
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  userId     String    // who receives the notification
+  type       String    // FRIEND_REQUEST | FRIEND_ACCEPTED | MEDIA_APPROVED | MEDIA_REJECTED
+  actorId    String    // who performed the action
+  // For media notifications
+  mediaId    String?   // the media item (stored as plain ref, no cascade needed)
+  mediaTitle String?   // cached title so we never need a join for display
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
 
   user  User @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
   actor User @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)

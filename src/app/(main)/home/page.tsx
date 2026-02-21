@@ -98,7 +98,7 @@ export default function HomePage() {
         </div>
         <Link href="/media/new"
           className="btn btn-primary flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-lg)] text-sm font-semibold shrink-0">
-          <span className="text-base leading-none">+</span> Add media
+          <span className="text-base leading-none">+</span> Suggest media
         </Link>
       </div>
 
@@ -153,7 +153,7 @@ export default function HomePage() {
         <div className="card rounded-[var(--radius-xl)] p-12 text-center">
           <div className="text-4xl mb-3">🔍</div>
           <p className="text-[var(--muted)] mb-4">{q || typeFilter ? "No matches found. Try different filters." : "No media in the catalog yet."}</p>
-          <Link href="/media/new" className="text-[var(--accent)] font-semibold hover:underline text-sm">+ Add the first one</Link>
+          <Link href="/media/new" className="text-[var(--accent)] font-semibold hover:underline text-sm">+ Suggest the first one</Link>
         </div>
       )}
     </div>

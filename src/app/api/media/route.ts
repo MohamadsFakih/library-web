@@ -12,23 +12,22 @@ const createSchema = z.object({
   description: z.string().optional(),
   coverUrl: z.string().optional(),
   metadata: z.string().optional(),
-  // initial collection status (optional, user can add to their collection on creation)
-  addToCollection: z.boolean().optional().default(false),
-  initialStatus: z.enum(["OWNED", "WISHLIST", "IN_PROGRESS", "COMPLETED"]).optional().default("OWNED"),
 });
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const q = (searchParams.get("q") ?? "").trim();
+  const q     = (searchParams.get("q") ?? "").trim();
   const genre = searchParams.get("genre") ?? "";
-  const type = searchParams.get("type") ?? "";
+  const type  = searchParams.get("type") ?? "";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: Record<string, any> = {};
+  const where: Record<string, any> = {
+    status: "APPROVED", // users only see approved catalog items
+  };
   if (q) {
     where.OR = [
-      { title: { contains: q } },
-      { creator: { contains: q } },
+      { title:       { contains: q } },
+      { creator:     { contains: q } },
       { description: { contains: q } },
     ];
   }
@@ -36,7 +35,7 @@ export async function GET(request: Request) {
   if (type && ["MOVIE", "MUSIC", "GAME"].includes(type)) where.type = type;
 
   const media = await prisma.media.findMany({
-    where: Object.keys(where).length ? where : undefined,
+    where,
     orderBy: { title: "asc" },
     include: {
       _count: { select: { userMedia: true } },
@@ -48,14 +47,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  // Any authenticated user can create media
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const body = await request.json();
+    const body   = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -64,26 +62,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const { addToCollection, initialStatus, ...mediaData } = parsed.data;
-    const data = {
-      ...mediaData,
-      releaseDate: mediaData.releaseDate ? new Date(mediaData.releaseDate) : null,
-      createdById: session.user.id,
-    };
+    const isAdmin = session.user.role === "ADMIN";
 
-    const media = await prisma.media.create({ data });
-
-    // Optionally add to creator's collection immediately
-    if (addToCollection) {
-      await prisma.userMedia.create({
-        data: {
-          userId: session.user.id,
-          mediaId: media.id,
-          status: initialStatus ?? "OWNED",
-          completedAt: initialStatus === "COMPLETED" ? new Date() : null,
-        },
-      });
-    }
+    const media = await prisma.media.create({
+      data: {
+        ...parsed.data,
+        releaseDate: parsed.data.releaseDate ? new Date(parsed.data.releaseDate) : null,
+        createdById: session.user.id,
+        // Admin submissions go live immediately; user submissions need review
+        status: isAdmin ? "APPROVED" : "PENDING",
+      },
+    });
 
     return NextResponse.json(media);
   } catch (e) {

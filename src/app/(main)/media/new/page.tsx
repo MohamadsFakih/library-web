@@ -11,13 +11,6 @@ const TYPE_OPTIONS = [
   { value: "GAME",  label: "🎮 Game" },
 ];
 
-const STATUS_OPTIONS = [
-  { value: "OWNED",       label: "Owned" },
-  { value: "WISHLIST",    label: "Wishlist" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "COMPLETED",   label: "Completed" },
-];
-
 const TYPE_BADGE: Record<string, string> = { MOVIE: "badge-movie", MUSIC: "badge-music", GAME: "badge-game" };
 const TYPE_EMOJI: Record<string, string> = { MOVIE: "🎬", MUSIC: "🎵", GAME: "🎮" };
 
@@ -227,8 +220,7 @@ export default function CreateMediaPage() {
     metadata: "",
     coverUrl: "",
   });
-  const [addToCollection, setAddToCollection] = useState(true);
-  const [initialStatus, setInitialStatus] = useState("OWNED");
+  const [submitted, setSubmitted] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -285,34 +277,50 @@ export default function CreateMediaPage() {
           description: form.description || undefined,
           metadata: form.metadata || undefined,
           coverUrl: coverFile ? undefined : (form.coverUrl || undefined),
-          addToCollection,
-          initialStatus: addToCollection ? initialStatus : undefined,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? "Failed to create"); setSaving(false); return; }
+      if (!res.ok) { setError(data.error ?? "Failed to submit"); setSaving(false); return; }
 
-      const mediaId = data.id as string;
-
+      // Try to upload cover image (best effort — suggestion is already submitted)
       if (coverFile) {
         const fd = new FormData();
         fd.append("file", coverFile);
-        const upRes = await fetch(`/api/media/${mediaId}/cover`, { method: "POST", body: fd });
-        if (!upRes.ok) {
-          const upErr = await upRes.json();
-          setError(`Media created, but cover upload failed: ${upErr.error ?? "unknown error"}`);
-          setSaving(false);
-          router.push(`/media/${mediaId}`);
-          return;
-        }
+        await fetch(`/api/media/${data.id}/cover`, { method: "POST", body: fd }).catch(() => {});
       }
 
-      router.push(`/media/${mediaId}`);
+      setSubmitted(true);
+      setSaving(false);
     } catch {
       setError("Something went wrong.");
       setSaving(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16 animate-slide-up">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-hover)] flex items-center justify-center mx-auto mb-6 text-3xl shadow-[0_0_30px_var(--accent-glow)]">
+          ✅
+        </div>
+        <h1 className="page-title text-2xl font-bold mb-2">Suggestion submitted!</h1>
+        <p className="text-[var(--muted)] text-sm mb-8">
+          An admin will review your suggestion. Once approved it will appear in the catalog and you can add it to your collection.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/profile/me" className="btn btn-primary px-6 py-3 rounded-[var(--radius-lg)] text-sm font-semibold text-center">
+            View my suggestions
+          </Link>
+          <Link href="/media/new" onClick={() => setSubmitted(false)} className="btn btn-outline px-6 py-3 rounded-[var(--radius-lg)] text-sm font-semibold text-center">
+            Suggest another
+          </Link>
+          <Link href="/home" className="btn btn-outline px-6 py-3 rounded-[var(--radius-lg)] text-sm font-semibold text-center">
+            Browse catalog
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -321,8 +329,8 @@ export default function CreateMediaPage() {
         <Link href="/home" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           ← Back to catalog
         </Link>
-        <h1 className="page-title text-2xl font-bold mt-2 mb-1">Add media</h1>
-        <p className="text-[var(--muted)] text-sm">Use AI to find a title, or fill out the form manually.</p>
+        <h1 className="page-title text-2xl font-bold mt-2 mb-1">Suggest media</h1>
+        <p className="text-[var(--muted)] text-sm">Suggest a title for the catalog. An admin will review and approve it before it appears.</p>
       </div>
 
       <div className="space-y-5">
@@ -441,36 +449,18 @@ export default function CreateMediaPage() {
               )}
             </div>
 
-            {/* Collection */}
-            <div className="card rounded-[var(--radius-lg)] p-5 space-y-3">
-              <h2 className="text-sm font-semibold text-[var(--foreground)]">Add to your collection</h2>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${addToCollection ? "bg-[var(--accent)]" : "bg-[var(--surface)] border border-[var(--card-border)]"}`}
-                  onClick={() => setAddToCollection((v) => !v)}>
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${addToCollection ? "translate-x-5" : "translate-x-1"}`} />
-                </div>
-                <span className="text-sm font-medium">Add to my collection after creating</span>
-              </label>
-              {addToCollection && (
-                <div className="flex flex-wrap gap-2 ml-[52px]">
-                  {STATUS_OPTIONS.map((opt) => (
-                    <button key={opt.value} type="button"
-                      onClick={() => setInitialStatus(opt.value)}
-                      className={`px-3 py-1.5 rounded-[var(--radius)] border text-xs font-medium transition-all ${
-                        initialStatus === opt.value
-                          ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                          : "border-[var(--card-border)] text-[var(--muted)] hover:border-[var(--accent)]/40"
-                      }`}
-                    >{opt.label}</button>
-                  ))}
-                </div>
-              )}
+            {/* Pending notice */}
+            <div className="rounded-[var(--radius-lg)] bg-[var(--accent-soft)] border border-[var(--accent)]/20 px-4 py-3 flex items-start gap-3">
+              <span className="text-lg shrink-0">⏳</span>
+              <p className="text-sm text-[var(--muted)]">
+                Your suggestion will be <span className="text-[var(--foreground)] font-semibold">reviewed by an admin</span> before it appears in the catalog. You can track it under <Link href="/profile/me" className="text-[var(--accent)] hover:underline">My suggestions</Link>.
+              </p>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
               <button type="submit" disabled={saving}
                 className="btn btn-primary px-6 py-3 rounded-[var(--radius-lg)] text-sm font-semibold">
-                {saving ? "Creating…" : "Create media"}
+                {saving ? "Submitting…" : "Submit suggestion"}
               </button>
               <Link href="/home" className="btn btn-outline px-5 py-3 rounded-[var(--radius-lg)] text-sm font-medium">
                 Cancel

@@ -49,19 +49,20 @@ export default function RegisterPage() {
             <div className="rounded-[var(--radius-lg)] bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[var(--danger)] px-4 py-3 text-sm font-medium">{error}</div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1.5">Display name (optional)</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+            <label className="block text-sm font-medium mb-1.5">Name <span className="text-[var(--danger)]">*</span></label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required minLength={2}
+              autoFocus
               className="form-input w-full rounded-[var(--radius-lg)] border border-[var(--card-border)] px-4 py-3 text-sm"
               placeholder="Your name" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <label className="block text-sm font-medium mb-1.5">Email <span className="text-[var(--danger)]">*</span></label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="form-input w-full rounded-[var(--radius-lg)] border border-[var(--card-border)] px-4 py-3 text-sm"
               placeholder="you@example.com" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5">Password (min 6 chars)</label>
+            <label className="block text-sm font-medium mb-1.5">Password <span className="text-[var(--danger)]">*</span> <span className="text-[var(--muted)] font-normal">(min 6 chars)</span></label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
               className="form-input w-full rounded-[var(--radius-lg)] border border-[var(--card-border)] px-4 py-3 text-sm"
               placeholder="••••••••" />

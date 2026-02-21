@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  name: z.string().optional(),
+  name: z.string().min(2, "Name must be at least 2 characters"),
 });
 
 export async function POST(request: Request) {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     await prisma.user.create({
-      data: { email, passwordHash, name: name ?? null },
+      data: { email, passwordHash, name },
     });
 
     return NextResponse.json({ ok: true });
