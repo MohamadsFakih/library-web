@@ -225,7 +225,6 @@ export default function EditMediaPage() {
               <div onClick={() => fileRef.current?.click()}
                 className="border-2 border-dashed border-[var(--card-border)] rounded-[var(--radius-lg)] p-4 text-center cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent-soft)]/20 transition-all">
                 <p className="text-sm text-[var(--muted)]">Click to browse an <span className="text-[var(--accent)]">image file</span></p>
-                <p className="text-xs text-[var(--muted)]/60 mt-0.5">Requires Vercel Blob storage</p>
               </div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>

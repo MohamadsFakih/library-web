@@ -434,7 +434,7 @@ export default function CreateMediaPage() {
                     className="border-2 border-dashed border-[var(--card-border)] rounded-[var(--radius-lg)] p-6 text-center cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent-soft)]/20 transition-all group">
                     <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">🖼️</div>
                     <p className="text-sm text-[var(--muted)]">Click to browse <span className="text-[var(--accent)]">image file</span></p>
-                    <p className="text-xs text-[var(--muted)]/60 mt-1">JPG, PNG, WebP (requires Blob storage)</p>
+                    <p className="text-xs text-[var(--muted)]/60 mt-1">JPG, PNG, WebP</p>
                   </div>
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                   <div className="flex items-center gap-3">

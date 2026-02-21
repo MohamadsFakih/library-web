@@ -217,7 +217,7 @@ export default function AdminEditMediaPage() {
           <div className="space-y-3">
             <div onClick={() => fileRef.current?.click()}
               className="border-2 border-dashed border-[var(--card-border)] rounded-[var(--radius-lg)] p-4 text-center cursor-pointer hover:border-[var(--accent)]/50 hover:bg-[var(--accent-soft)]/20 transition-all">
-              <p className="text-sm text-[var(--muted)]">Click to upload new image <span className="text-[var(--accent)]">(requires Blob storage)</span></p>
+              <p className="text-sm text-[var(--muted)]">Click to upload new image</p>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             {!coverFile && (
