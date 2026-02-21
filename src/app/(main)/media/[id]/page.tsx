@@ -46,6 +46,7 @@ export default function MediaDetailPage() {
   const [adding, setAdding]     = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("WISHLIST");
   const [deleting, setDeleting] = useState(false);
+  const [copied, setCopied]     = useState(false);
 
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -92,6 +93,13 @@ export default function MediaDetailPage() {
     if (res.ok) setEntry(null);
   }
 
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   async function deleteMedia() {
     if (!confirm("Permanently delete this media? This removes it from all collections.")) return;
     setDeleting(true);
@@ -125,19 +133,34 @@ export default function MediaDetailPage() {
         <Link href="/home" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
           ← Catalog
         </Link>
-        {/* Only admins can edit/delete approved catalog items */}
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            <Link href={`/media/${id}/edit`}
-              className="btn btn-outline px-3.5 py-1.5 rounded-[var(--radius-lg)] text-sm font-medium">
-              ✏️ Edit
-            </Link>
-            <button type="button" onClick={deleteMedia} disabled={deleting}
-              className="btn btn-danger px-3.5 py-1.5 rounded-[var(--radius-lg)] text-sm font-medium">
-              {deleting ? "Deleting…" : "🗑 Delete"}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Copy link */}
+          <button type="button" onClick={copyLink}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-lg)] text-sm font-medium transition-all border ${
+              copied
+                ? "border-[var(--success)]/40 bg-[var(--success-soft)] text-[var(--success)]"
+                : "btn btn-outline"
+            }`}>
+            {copied ? (
+              <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg> Copied!</>
+            ) : (
+              <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Share</>
+            )}
+          </button>
+          {/* Admin controls */}
+          {isAdmin && (
+            <>
+              <Link href={`/media/${id}/edit`}
+                className="btn btn-outline px-3.5 py-1.5 rounded-[var(--radius-lg)] text-sm font-medium">
+                ✏️ Edit
+              </Link>
+              <button type="button" onClick={deleteMedia} disabled={deleting}
+                className="btn btn-danger px-3.5 py-1.5 rounded-[var(--radius-lg)] text-sm font-medium">
+                {deleting ? "Deleting…" : "🗑 Delete"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="card rounded-[var(--radius-xl)] overflow-hidden flex flex-col sm:flex-row">
@@ -182,7 +205,11 @@ export default function MediaDetailPage() {
 
           {media.createdBy && (
             <p className="text-xs text-[var(--muted)] mt-3">
-              Added by <span className="font-medium text-[var(--foreground)]">{media.createdBy.name ?? media.createdBy.email}</span>
+              Added by{" "}
+              <Link href={`/profile/${media.createdBy.id}`}
+                className="font-medium text-[var(--foreground)] hover:text-[var(--accent)] transition-colors underline underline-offset-2 decoration-[var(--card-border)] hover:decoration-[var(--accent)]">
+                {media.createdBy.name ?? media.createdBy.email}
+              </Link>
             </p>
           )}
 
