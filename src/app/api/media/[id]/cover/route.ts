@@ -22,25 +22,31 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: "Image storage not configured (BLOB_READ_WRITE_TOKEN missing)." },
-      { status: 503 }
-    );
-  }
-
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   if (!file?.size) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
+  if (file.size > 4 * 1024 * 1024) {
+    return NextResponse.json({ error: "Image must be under 4 MB." }, { status: 400 });
+  }
+
   try {
-    const { put, del } = await import("@vercel/blob");
-    if (media.coverUrl) {
-      try { await del(media.coverUrl); } catch {}
+    let coverUrl: string;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const { put, del } = await import("@vercel/blob");
+      if (media.coverUrl?.startsWith("https://")) {
+        try { await del(media.coverUrl); } catch {}
+      }
+      const blob = await put(`media/${id}-${file.name}`, file, { access: "public" });
+      coverUrl = blob.url;
+    } else {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      coverUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
     }
-    const blob = await put(`media/${id}-${file.name}`, file, { access: "public" });
-    await prisma.media.update({ where: { id }, data: { coverUrl: blob.url } });
-    return NextResponse.json({ url: blob.url });
+
+    await prisma.media.update({ where: { id }, data: { coverUrl } });
+    return NextResponse.json({ url: coverUrl });
   } catch (e) {
     console.error("Upload cover:", e);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
