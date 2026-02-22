@@ -8,8 +8,8 @@ Track movies, music, and games in one place. Add items from the catalog to your 
 - **Personal collection**: Users add catalog items to their collection with status: **Owned**, **Wishlist**, **In progress**, **Completed**.
 - **Search & filter**: Browse by title, creator, genre, and type (Movie / Music / Game).
 - **Profiles**: Toggle “Share my collection” to let others see what you track. View other users’ public collections.
-- **AI**: Optional recommendations based on your collection; optional AI summarization for media (requires `OPENAI_API_KEY`).
-- **Auth**: Email/password, Google, and GitHub sign-in. Admin and user roles.
+- **AI**: Create edia recommendations isntantly using AI.
+- **Auth**: Email/password, sign-in. Admin and user roles.
 
 ## How to run
 
@@ -66,7 +66,7 @@ For production, set `DATABASE_URL` to a PostgreSQL connection string (e.g. Verce
 
 ## Deploy (e.g. Vercel)
 
-1. Connect the repo to Vercel and set environment variables: `DATABASE_URL` (Postgres), `AUTH_SECRET`, `ADMIN_PASSWORD`, and optionally `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `OPENAI_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `NEXTAUTH_URL`.
+1. Connect the repo to Vercel and set environment variables: `DATABASE_URL` (Postgres), `AUTH_SECRET`, `ADMIN_PASSWORD`.
 2. Deploy. The build runs migrations and seed; ensure the seed is idempotent (creates admin if missing, adds sample media only when the table is empty).
 
 ## Project structure
