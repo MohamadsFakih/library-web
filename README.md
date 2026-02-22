@@ -1,80 +1,150 @@
-# Media Tracker — Personal Media Collection Tracker
+# MediaTracker
 
-Track movies, music, and games in one place. Add items from the catalog to your collection, set status (owned, wishlist, in progress, completed), and share your collection with others.
+A personal media collection tracker for movies, music, and games. Browse a shared catalog, add items to your collection, track your status (owned, wishlist, in progress, completed), and share your profile with others.
 
 ## Features
 
-- **Media catalog**: Admins add movies, music, and games (title, creator, release date, genre, description).
-- **Personal collection**: Users add catalog items to their collection with status: **Owned**, **Wishlist**, **In progress**, **Completed**.
-- **Search & filter**: Browse by title, creator, genre, and type (Movie / Music / Game).
-- **Profiles**: Toggle “Share my collection” to let others see what you track. View other users’ public collections.
-- **AI**: Create edia recommendations isntantly using AI.
-- **Auth**: Email/password, sign-in. Admin and user roles.
+- **Media catalog** — Browse movies, music, and games added by admins or suggested by users.
+- **Personal collection** — Add any catalog item to your collection and set a status: Owned, Wishlist, In Progress, or Completed.
+- **Search & filter** — Filter by title, creator, genre, and media type.
+- **Suggest media** — Submit a new movie, game, or album for admin review. Get notified when it's approved or rejected.
+- **AI suggestions** — Describe what you're looking for and get AI-powered title suggestions with cover art.
+- **Profiles** — Make your collection public and browse what others are tracking.
+- **Admin panel** — Manage the catalog, review user suggestions, and manage users at `/admin`.
 
-## How to run
+---
+
+## Running locally (step by step)
 
 ### Prerequisites
 
-- Node.js 18+
-- (Optional) PostgreSQL for production; SQLite is used locally.
+Make sure you have the following installed before starting:
 
-### 1. Install dependencies
+- [Node.js 18+](https://nodejs.org/) — check with `node -v`
+- [Git](https://git-scm.com/) — check with `git --version`
+- A terminal (PowerShell, bash, or any shell)
+
+---
+
+### Step 1 — Clone the repo
+
+```bash
+git clone https://github.com/MohamadsFakih/media-web.git
+cd media-web
+```
+
+---
+
+### Step 2 — Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Environment variables
+---
 
-Copy the example env and edit:
+### Step 3 — Set up environment variables
+
+Copy the example file:
 
 ```bash
+# macOS / Linux
 cp .env.example .env
+
+# Windows (PowerShell)
+Copy-Item .env.example .env
 ```
 
-Required in `.env`:
+Then open `.env` and fill in the values:
 
-- `DATABASE_URL` — SQLite for local: `file:./dev.db`
-- `AUTH_SECRET` — e.g. `openssl rand -base64 32`
-- `ADMIN_PASSWORD` — Used by the seed to create/update the admin user.
+```env
+# Required — leave as-is for local SQLite
+DATABASE_URL="file:./dev.db"
 
-Optional: `ADMIN_EMAIL` (default `admin@admin.com`), `AUTH_GOOGLE_*`, `AUTH_GITHUB_*`, `OPENAI_API_KEY`, `BLOB_READ_WRITE_TOKEN` (Vercel Blob for cover uploads).
+# Required — any random string works locally, e.g. "my-local-secret-123"
+AUTH_SECRET=your-random-secret-here
 
-### 3. Run the app
+# Required — password for the auto-created admin account
+ADMIN_PASSWORD=admin
+
+# Optional — AI media suggestions (get a free token at https://huggingface.co/settings/tokens)
+HUGGINGFACE_TOKEN=your_huggingface_token_here
+
+# Optional — better game cover art for all platforms (free key at https://rawg.io/apidocs)
+# Without this, only PC game covers are fetched via Steam
+RAWG_API_KEY=your_rawg_api_key_here
+```
+
+> The app works fully without the optional keys — AI suggestions and game covers will be limited or skipped.
+
+---
+
+### Step 4 — Start the dev server
 
 ```bash
 npm run dev
 ```
 
-This will:
+This single command will:
 
-- Generate the Prisma client
-- Push the schema (create/update SQLite tables)
-- Seed the database (admin user + sample media)
-- Start the Next.js dev server at [http://localhost:3000](http://localhost:3000)
+1. Generate the Prisma database client
+2. Create the local SQLite database and apply the schema
+3. Seed the database with an admin account and a few sample media items
+4. Start the Next.js dev server
 
-Log in with the admin email and `ADMIN_PASSWORD` to access the admin area (Media catalog, Users). Register another account to use the app as a normal user (Browse, My collection, Profile).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 4. Production build
+---
 
-```bash
-npm run build
-npm start
-```
+### Step 5 — Log in
 
-For production, set `DATABASE_URL` to a PostgreSQL connection string (e.g. Vercel Postgres). The build script switches the Prisma provider to PostgreSQL when it detects a `postgresql://` URL.
+Two accounts are created automatically by the seed:
 
-## Deploy (e.g. Vercel)
+| Role  | Email             | Password               |
+|-------|-------------------|------------------------|
+| Admin | admin@admin.com   | value of `ADMIN_PASSWORD` in your `.env` |
+| —     | *(register yourself)* | *(use the Register page)* |
 
-1. Connect the repo to Vercel and set environment variables: `DATABASE_URL` (Postgres), `AUTH_SECRET`, `ADMIN_PASSWORD`.
-2. Deploy. The build runs migrations and seed; ensure the seed is idempotent (creates admin if missing, adds sample media only when the table is empty).
+- Go to `/admin` to access the admin panel (add media, approve suggestions, manage users).
+- Register a normal account at `/register` to use the app as a regular user.
+
+---
 
 ## Project structure
 
-- `prisma/schema.prisma` — User, Media, UserMedia (collection entries).
-- `src/app/(main)/` — User app: Browse, My collection, Media detail, Profile (me + public).
-- `src/app/admin/` — Admin: Dashboard, Media CRUD, Users.
-- `src/app/api/` — media, collection, me, users/[id]/collection, ai/recommend, ai/summarize, auth.
+```
+prisma/
+  schema.prisma       — Database models (User, Media, UserMedia, Notification)
+  seed.cjs            — Seeds admin account + sample media on startup
+
+src/app/
+  (main)/             — User-facing pages (Home, Collection, Media detail, Profile)
+  admin/              — Admin pages (Dashboard, Media CRUD, Suggestions, Users)
+  api/                — API routes (media, collection, auth, AI, notifications)
+
+src/lib/
+  auth.ts             — NextAuth config
+  prisma.ts           — Prisma client singleton
+```
+
+---
+
+## Deploying to Vercel
+
+1. Push the repo to GitHub.
+2. Import the project in [Vercel](https://vercel.com) and set these environment variables:
+
+   | Variable        | Description                                      |
+   |-----------------|--------------------------------------------------|
+   | `DATABASE_URL`  | PostgreSQL connection string (e.g. Neon, Supabase) |
+   | `AUTH_SECRET`   | Random secret — generate with `openssl rand -base64 32` |
+   | `ADMIN_PASSWORD`| Password for the seeded admin account            |
+   | `HUGGINGFACE_TOKEN` | *(Optional)* AI suggestions                  |
+   | `RAWG_API_KEY`  | *(Optional)* Game cover images                   |
+
+3. Deploy. The build automatically switches the database provider to PostgreSQL, runs migrations, and seeds the admin account.
+
+---
 
 ## License
 
